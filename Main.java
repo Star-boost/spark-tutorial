@@ -9,6 +9,8 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
+import scala.Tuple2;
+
 public class Main {
 
     public static void main(String[] args) {
@@ -20,38 +22,26 @@ public class Main {
         inputData.add(90);
         inputData.add(20);
 
-        // create the spark config
+        // what if we want to store both original data and square root data in an rdd?
+        // option 1: declare a new class that contains both data
+        // option 2: use scala tuples
+
         SparkConf conf = new SparkConf().setAppName("startingSpark").setMaster("local[*]");
-        // load to config into a new Spark context
         JavaSparkContext sc = new JavaSparkContext(conf);
-        // load in a collection and turn it into an rdd
-        JavaRDD<Integer> myRdd = sc.parallelize(inputData);
 
-        // lambda function argument for reduce
-        Integer result = myRdd.reduce((value1, value2) -> value1 + value2);
+        JavaRDD<Integer> originalIntegers = sc.parallelize(inputData);
 
-        // map
-        JavaRDD<Double> sqrtRdd = myRdd.map(value -> Math.sqrt(value));
+        // option 1:
+        // JavaRDD<IntegerWithSquareRoot> sqrtRdd = originalIntegers.map(value -> new
+        // IntegerWithSquareRoot(value));
 
-        // foreach takes a voidFunction in
-        // so it's different from map
-        // sqrtRdd.foreach(value -> System.out.println(value));
+        // option 2:
+        JavaRDD<Tuple2<Integer, Double>> sqrtRdd = originalIntegers.map(
+                value -> new Tuple2<>(value, Math.sqrt(value)));
 
-        // another way to do this (double colon syntax)
-        // notice we had to do collect because println is not serializable
-        sqrtRdd.collect().forEach(System.out::println);
-
-        System.out.println(result);
-
-        // how many elements in sqrtRdd?
-        System.out.println(sqrtRdd.count());
-
-        // how many elements in sqrtRdd using only map and reduce?
-        // put the "L" after 1 to make java treat it as a long
-        // we use a long because Integer has a limit of around 2 billion
-        JavaRDD<Long> singleIntegerRdd = sqrtRdd.map(value -> 1L);
-        Long count = singleIntegerRdd.reduce((value1, value2) -> value1 + value2);
-        System.out.println(count);
+        // can use empty brackets on the right because type can be inferred from the
+        // left
+        Tuple2<Integer, Double> myValue = new Tuple2<>(9, 3.0);
 
         sc.close();
 
