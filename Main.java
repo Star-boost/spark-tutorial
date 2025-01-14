@@ -19,48 +19,19 @@ public class Main {
 
         Logger.getLogger("org").setLevel(Level.WARN);
 
-        // FlatMaps and Filters
+        // Reading from disk
 
-        // given a single input, flatmaps can have 0 or more outputs
-        // maps always provide 1 output for each input
-
-        List<String> inputData = new ArrayList<>();
-        inputData.add("WARN: Tuesday 4 September 0405");
-        inputData.add("ERROR: Tuesday 4 September 0408");
-        inputData.add("FATAL: Wednesday 5 September 1632");
-        inputData.add("ERROR: Friday 7 September 1854");
-        inputData.add("WARN: Saturday 8 September 1942");
+        // Reading and printing out all items in the input.txt file
 
         SparkConf conf = new SparkConf().setAppName("startingSpark").setMaster("local[*]");
         JavaSparkContext sc = new JavaSparkContext(conf);
 
-        // one-line version:
+        JavaRDD<String> initialRdd = sc.textFile("src/main/resources/subtitles/input.txt");
 
-        sc.parallelize(inputData)
+        initialRdd
                 .flatMap(value -> Arrays.asList(value.split(" ")).iterator())
-                .filter(word -> word.length() > 1)
                 .collect()
                 .forEach(System.out::println);
-
-        // JavaRDD<String> sentences = sc.parallelize(inputData);
-
-        // we want to return a java collection when doing split
-        // that's why we use asList
-
-        // flatMap also requires an iterator,
-        // so we used .iterator()
-
-        // JavaRDD<String> words = sentences.flatMap(value ->
-        // Arrays.asList(value.split(" ")).iterator());
-
-        // what if we want to filter out strings of length 1 from our iteratble?
-        // use filter:
-
-        // JavaRDD<String> filteredWords = words.filter(word -> word.length() > 1);
-
-        // for each iterator print out the words
-
-        // filteredWords.collect().forEach(System.out::println);
 
         sc.close();
 
