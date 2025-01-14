@@ -2,10 +2,12 @@ package com.virtualpairprogrammers;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Arrays;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
 import com.google.common.collect.Iterables;
@@ -17,11 +19,10 @@ public class Main {
 
         Logger.getLogger("org").setLevel(Level.WARN);
 
-        /*
-         * example of reading and counting different log messages
-         * splitting strings like logs is so common spark has a pair rdd
-         * they are similar to Maps in Java, except keys can be REPEATED
-         */
+        // FlatMaps and Filters
+
+        // given a single input, flatmaps can have 0 or more outputs
+        // maps always provide 1 output for each input
 
         List<String> inputData = new ArrayList<>();
         inputData.add("WARN: Tuesday 4 September 0405");
@@ -33,41 +34,33 @@ public class Main {
         SparkConf conf = new SparkConf().setAppName("startingSpark").setMaster("local[*]");
         JavaSparkContext sc = new JavaSparkContext(conf);
 
-        // map to pair
-        // in the generic, just need to specify the types within the tuples
-
-        /*
-         * option 1:
-         * group by key pairRdd method maps each key to a Collection containing all
-         * values associated by that key
-         * can cause a lot of performance issues
-         */
-
-        // Using guava Iterables.size method because the collection returned doesn't
-        // have an iterable method
+        // one-line version:
 
         sc.parallelize(inputData)
-                .mapToPair(rawValue -> new Tuple2<>(rawValue.split(":")[0], 1L))
-                .groupByKey()
-                .foreach(tuple -> System.out.println(tuple._1 + " has " + Iterables.size(tuple._2) + " instances"));
+                .flatMap(value -> Arrays.asList(value.split(" ")).iterator())
+                .filter(word -> word.length() > 1)
+                .collect()
+                .forEach(System.out::println);
 
-        /*
-         * option 2:
-         * reduce by key
-         * provide a reduction function and the function will be performed across each
-         * key
-         * if our values are all 1's:
-         * our reduction function can add up values for the same key
-         * and will return a new rdd with counts for each log type
-         */
+        // JavaRDD<String> sentences = sc.parallelize(inputData);
 
-        // one liner with intermediate rdd's removed, no need to declare the pair rdd's
-        // _1 accesses the first element of the tuple, _2 the second
+        // we want to return a java collection when doing split
+        // that's why we use asList
 
-        sc.parallelize(inputData)
-                .mapToPair(rawValue -> new Tuple2<>(rawValue.split(":")[0], 1L))
-                .reduceByKey((value1, value2) -> value1 + value2)
-                .foreach(tuple -> System.out.println(tuple._1 + " has " + tuple._2 + " instances"));
+        // flatMap also requires an iterator,
+        // so we used .iterator()
+
+        // JavaRDD<String> words = sentences.flatMap(value ->
+        // Arrays.asList(value.split(" ")).iterator());
+
+        // what if we want to filter out strings of length 1 from our iteratble?
+        // use filter:
+
+        // JavaRDD<String> filteredWords = words.filter(word -> word.length() > 1);
+
+        // for each iterator print out the words
+
+        // filteredWords.collect().forEach(System.out::println);
 
         sc.close();
 
