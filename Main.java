@@ -15,10 +15,11 @@ import org.apache.spark.api.java.JavaSparkContext;
 public class Main {
     public static void main(String[] args) {
         Logger.getLogger("org").setLevel(Level.WARN);
-        SparkConf conf = new SparkConf().setAppName("startingSpark").setMaster("local[*]");
+
+        SparkConf conf = new SparkConf().setAppName("startingSpark");
         JavaSparkContext sc = new JavaSparkContext(conf);
 
-        JavaRDD<String> initialRdd = sc.textFile("src/main/resources/subtitles/input.txt");
+        JavaRDD<String> initialRdd = sc.textFile("s3://akindu-spark-demos/input.txt");
 
         JavaRDD<String> lettersOnlyRdd = initialRdd
                 .map(sentence -> sentence.replaceAll("[^a-zA-Z\\s]", "").toLowerCase());
@@ -40,18 +41,8 @@ public class Main {
 
         JavaPairRDD<Long, String> sorted = switched.sortByKey(false);
 
-        System.out.println("There are " + sorted.getNumPartitions() + " partitions");
-
-        // sorted.foreach(element -> System.out.println(element));
-
-        // java spins a thread for each core we have on our computer
-
-        // foreach executes the lambda on each partition in parallel
-
-        // solution: call any other action other than foreach, such as take! these will
-        // be correct even with multiple threads/partitions
-
         List<Tuple2<Long, String>> results = sorted.take(10);
+
         results.forEach(System.out::println);
 
         sc.close();
