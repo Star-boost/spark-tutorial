@@ -2,6 +2,7 @@ package com.virtualpairprogrammers;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -114,6 +115,9 @@ public class ViewingFigures {
 		// summed views, for example)
 
 		summedScoreToCourseNameRdd.collect().forEach(System.out::println);
+
+		Scanner scanner = new Scanner(System.in);
+		scanner.nextLine();
 		sc.close();
 	}
 
@@ -155,12 +159,12 @@ public class ViewingFigures {
 			rawChapterData.add(new Tuple2<>(109, 3));
 			return sc.parallelizePairs(rawChapterData);
 		}
-
+		// caching the data so it doesn't have to be read in twice
 		return sc.textFile("src/main/resources/viewing figures/chapters.csv")
 				.mapToPair(commaSeparatedLine -> {
 					String[] cols = commaSeparatedLine.split(",");
 					return new Tuple2<Integer, Integer>(new Integer(cols[0]), new Integer(cols[1]));
-				});
+				}).cache();
 	}
 
 	private static JavaPairRDD<Integer, Integer> setUpViewDataRdd(JavaSparkContext sc, boolean testMode) {

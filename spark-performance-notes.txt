@@ -1,0 +1,44 @@
+Narrow vs wide transformations
+
+- narrow transformations can be done in parallel (doesn't depend on data in other partitions/nodes)
+- keys get shuffled on narrow transformations
+
+- wide transformations are the opposite
+- wide transformations are expensive operations, which involves shuffling (serialize and move data across partitions) (groupByKey, for example)
+
+
+Shuffles
+
+DAG:
+- a new spark stage gets created each time a wide transformation is required (which involves a shuffle)
+
+Key Skews
+- if a stage is taking too long, it's possible that some of the nodes in the cluster are idle and most of the data is in a single node or partition
+
+- to deal with this, try reworking to get the wide transformations at the end when you're hopefully working with smaller data
+- another way is to salt the keys (ex: warn1, warn2,..., warn6 go into different nodes
+
+
+Avoiding groupByKey
+- example of counting log types: 1) mapToPair log to tally (1s) 2) reduceByKey to sum the tallies in each partition 3) Apply reduce again on subtotals
+- note: reduceByKey has 2 phases. First phase doesn't require shuffling. Second phase requires shuffling but at this point from the first phase the amount of data that's being shuffled will have been reduced. Called a map side reduce. Reduce on the partitions so we shuffle with less data.
+
+
+Caching and Persistence
+- spark uses lazy evaluation, input data for a transform isn't saved unless you ask for it to be
+- when you get to an action, spark goes back to the initial rdd (more accurately the last shuffle stage)
+- spark will skip stages if the result of some transformations have been written to disk already
+
+Cache
+- .cache method useful for small data
+
+Persist
+- .persist(StorageLevel.MEMORY()) is the same thing as .cache
+- .persist(StoreageLevel.MEMORY_AND_DISK()) tries to use the cache and dips into disc if needed
+
+- in the spark DAG, a green circle on a stage means that cached data was successfully used
+
+- when you use the same input data in 2 separate places spark needs to pull that data again
+
+
+

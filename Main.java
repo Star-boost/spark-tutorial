@@ -2,6 +2,7 @@ package com.virtualpairprogrammers;
 
 import java.util.List;
 import java.util.Arrays;
+import java.util.Scanner;
 
 import scala.Tuple2;
 
@@ -16,10 +17,12 @@ public class Main {
     public static void main(String[] args) {
         Logger.getLogger("org").setLevel(Level.WARN);
 
-        SparkConf conf = new SparkConf().setAppName("startingSpark");
+        SparkConf conf = new SparkConf().setAppName("startingSpark").setMaster("local[*]");
         JavaSparkContext sc = new JavaSparkContext(conf);
 
-        JavaRDD<String> initialRdd = sc.textFile("s3://akindu-spark-demos/input.txt");
+        // JavaRDD<String> initialRdd =
+        // sc.textFile("s3://akindu-spark-demos/input.txt");
+        JavaRDD<String> initialRdd = sc.textFile("src/main/resources/subtitles/input.txt");
 
         JavaRDD<String> lettersOnlyRdd = initialRdd
                 .map(sentence -> sentence.replaceAll("[^a-zA-Z\\s]", "").toLowerCase());
@@ -41,9 +44,20 @@ public class Main {
 
         JavaPairRDD<Long, String> sorted = switched.sortByKey(false);
 
+        // this is the only place where spark HAS to do something. Everything else was
+        // just building the execution plan
+        // Operations like this are called actions
+        // Other operations (like the ones above) are transformations
         List<Tuple2<Long, String>> results = sorted.take(10);
 
         results.forEach(System.out::println);
+
+        // Adding a scanner to wait for text input and allow access to the web ui on
+        // spark (localhost:4040)
+        Scanner scanner = new Scanner(System.in);
+        scanner.nextLine();
+
+        // scanner.close();
 
         sc.close();
     }
