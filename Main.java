@@ -16,53 +16,34 @@ public class Main {
         SparkSession spark = SparkSession.builder().appName("testingSql").master("local[*]").getOrCreate();
 
         Dataset<Row> dataset = spark.read().option("header", true).csv("src/main/resources/exams/students.csv");
-        // dataset.show();
 
-        // long numberOfRows = dataset.count();
-        // System.out.println("There are " + numberOfRows + " records");
+        // Dataset<Row> modernArtResults = dataset.filter("select * from students where
+        // subject = 'Modern Art' AND year >= 2007");
 
-        // Row firstRow = dataset.first();
+        // we can do full sql syntax
 
-        // TASK: get a specific column value from a row
+        // we can build an actual table in memory, a "view":
+        dataset.createOrReplaceTempView("my_students_table");
 
-        // option 1: get
-        // .get gets the column
-        // String subject = firstRow.get(2).toString();
+        // using the original spark session we built:
 
-        // option 2: getAs gets the column by name
-        // String subject = firstRow.getAs("subject").toString();
-        // System.out.println(subject);
+        // Some sample sql queries:
 
-        // int year = Integer.parseInt(firstRow.getAs("year"));
-        // System.out.println("The year was " + year);
+        // Dataset<Row> results = spark.sql("select * from my_students_table where
+        // subject = 'French'");
 
-        // TASK: filter just modern art subject
+        // Dataset<Row> results = spark.sql("select score, year from my_students_table
+        // where subject = 'French'");
 
-        // option 1: filter with string (sql like)
-        // Dataset<Row> modernArtResults = dataset.filter("subject = 'Modern Art' AND
-        // year >= 2007");
+        // Dataset<Row> results = spark.sql("select max(score) from my_students_table
+        // where subject = 'French'");
 
-        // option 2: lambda expressions as before
-        // had to cast function to be a FilterFunction<Row>
-        // Dataset<Row> modernArtResults = dataset
-        // .filter((FilterFunction<Row>) row -> row.getAs("subject").equals("Modern
-        // Art")
-        // && Integer.parseInt(row.getAs("year")) >= 2007);
+        // Dataset<Row> results = spark.sql("select avg(score) from my_students_table
+        // where subject = 'French'");
 
-        // option 3: programmatically (use column class)
-        // Column subjectColumn = dataset.col("subject");
-        // Column yearColumn = dataset.col("year");
-        // Dataset<Row> modernArtResults = dataset.filter(subjectColumn.equalTo("Modern
-        // Art").and(yearColumn.geq(2007)));
+        Dataset<Row> results = spark.sql("select distinct(year) from my_students_table order by year desc");
 
-        // another way to retrieve the columns instead of instantiating a new Column
-        // instance each time is by using the functions class
-        // used a static import to avoid using "functions" prefix
-        // Column subjectColumn = col("subject");
-        // Column yearColumn = col("year");
-
-        Dataset<Row> modernArtResults = dataset.filter(col("subject").equalTo("Modern Art").and(col("year").geq(2007)));
-        modernArtResults.show();
+        results.show();
         spark.close();
 
     }
