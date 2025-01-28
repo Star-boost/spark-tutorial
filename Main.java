@@ -46,7 +46,15 @@ public class Main {
         // step 5: create data frame using in memory list
         Dataset<Row> dataset = spark.createDataFrame(inMemory, schema);
 
-        dataset.show();
+        dataset.createOrReplaceTempView("logging_table");
+        // make sure to do an aggregation such as count or collect_list on the group
+        // that's created
+        // because group by generates a list for each level
+        // below is similar to group by key which is not good for performance
+        Dataset<Row> results = spark
+                .sql("select level, collect_list(datetime) from logging_table group by level order by level");
+
+        results.show();
         spark.close();
 
     }
