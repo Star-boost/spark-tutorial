@@ -23,36 +23,32 @@ public class Main {
         Logger.getLogger("org").setLevel(Level.WARN);
 
         SparkSession spark = SparkSession.builder().appName("testingSql").master("local[*]").getOrCreate();
-        // Making our own dataframe:
 
-        // step 1: initialize arraylist
         List<Row> inMemory = new ArrayList<Row>();
-
-        // step 2: add data to list using row factory
         inMemory.add(RowFactory.create("WARN", "2016-12-31 04:19:32"));
         inMemory.add(RowFactory.create("FATAL", "2016-12-31 03:22:34"));
         inMemory.add(RowFactory.create("WARN", "2016-12-31 03:21:21"));
         inMemory.add(RowFactory.create("INFO", "2015-4-21 14:32:21"));
         inMemory.add(RowFactory.create("FATAL", "2015-4-21 19:23:20"));
 
-        // step 3: Initialize structfield
+        // REQUIREMENT - report of error type, month, and total number of that error
+        // type for that month
+
         StructField[] fields = new StructField[] {
                 new StructField("level", DataTypes.StringType, false, Metadata.empty()),
                 new StructField("datetime", DataTypes.StringType, false, Metadata.empty())
         };
-        // step 4: Initialize schema using the fields
+
         StructType schema = new StructType(fields);
-        // Data frame is a dataset of rows
-        // step 5: create data frame using in memory list
         Dataset<Row> dataset = spark.createDataFrame(inMemory, schema);
 
         dataset.createOrReplaceTempView("logging_table");
-        // make sure to do an aggregation such as count or collect_list on the group
-        // that's created
-        // because group by generates a list for each level
-        // below is similar to group by key which is not good for performance
+
+        // use the date_format function
+        // format string from java datetime simple date format class
+        // use AS + alias to change the header for the formatted month
         Dataset<Row> results = spark
-                .sql("select level, collect_list(datetime) from logging_table group by level order by level");
+                .sql("select level, date_format(datetime, 'MMMM') as month from logging_table");
 
         results.show();
         spark.close();
