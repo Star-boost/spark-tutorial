@@ -24,33 +24,28 @@ public class Main {
 
         SparkSession spark = SparkSession.builder().appName("testingSql").master("local[*]").getOrCreate();
 
-        List<Row> inMemory = new ArrayList<Row>();
-        inMemory.add(RowFactory.create("WARN", "2016-12-31 04:19:32"));
-        inMemory.add(RowFactory.create("FATAL", "2016-12-31 03:22:34"));
-        inMemory.add(RowFactory.create("WARN", "2016-12-31 03:21:21"));
-        inMemory.add(RowFactory.create("INFO", "2015-4-21 14:32:21"));
-        inMemory.add(RowFactory.create("FATAL", "2015-4-21 19:23:20"));
-
         // REQUIREMENT - report of error type, month, and total number of that error
         // type for that month
 
-        StructField[] fields = new StructField[] {
-                new StructField("level", DataTypes.StringType, false, Metadata.empty()),
-                new StructField("datetime", DataTypes.StringType, false, Metadata.empty())
-        };
-
-        StructType schema = new StructType(fields);
-        Dataset<Row> dataset = spark.createDataFrame(inMemory, schema);
-
+        Dataset<Row> dataset = spark.read().option("header", true).csv("src/main/resources/biglog.txt");
         dataset.createOrReplaceTempView("logging_table");
 
         // use the date_format function
         // format string from java datetime simple date format class
         // use AS + alias to change the header for the formatted month
-        Dataset<Row> results = spark
-                .sql("select level, date_format(datetime, 'MMMM') as month from logging_table");
 
-        results.show();
+        // add in a dummy column with a 1 to do an aggregation based on the two
+        // exisiting columns we want to group by
+        // do a count aggregation on this new column
+        Dataset<Row> results = spark
+                .sql("select level, date_format(datetime, 'MMMM') as month, count(1) as total from logging_table group by level, month");
+
+        results.show(100);
+
+        results.createOrReplaceTempView("results_table");
+
+        Dataset<Row> totals = spark.sql("select sum(total) from results_table");
+        totals.show();
         spark.close();
 
     }
