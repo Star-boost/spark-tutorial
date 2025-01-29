@@ -37,15 +37,29 @@ public class Main {
         // add in a dummy column with a 1 to do an aggregation based on the two
         // exisiting columns we want to group by
         // do a count aggregation on this new column
+
+        // IMPORTANT: any column that isn't in the group by needs an aggregation
+        // function applied to it.
+
+        // Dateformat returns a string.
+        // Dataset<Row> results = spark
+        // .sql("select level, date_format(datetime, 'MMMM') as month,
+        // cast(first(date_format(datetime, 'M')) as int) as monthnum, count(1) as total
+        // "
+        // +
+        // "from logging_table group by level, month order by monthnum");
+
+        // dropping the monthnum column in java
+        // results = results.drop("monthnum");
+
+        // another way without creating/dropping the monthnum
+        // added order by level as well
         Dataset<Row> results = spark
-                .sql("select level, date_format(datetime, 'MMMM') as month, count(1) as total from logging_table group by level, month");
+                .sql("select level, date_format(datetime, 'MMMM') as month, count(1) as total " +
+                        "from logging_table group by level, month order by cast(first(date_format(datetime, 'M')) as int), level");
 
         results.show(100);
 
-        results.createOrReplaceTempView("results_table");
-
-        Dataset<Row> totals = spark.sql("select sum(total) from results_table");
-        totals.show();
         spark.close();
 
     }
